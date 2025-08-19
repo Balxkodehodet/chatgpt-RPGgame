@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lite RPG – XP & Level</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121933;
+        --panel-2: #0f1630;
+        --text: #e6ecff;
+        --muted: #8ea3ff;
+        --good: #35d07f;
+        --warn: #ffb020;
+        --bad: #ff4d4f;
+        --accent: #6ea8fe;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #0b1020, #070a18);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+          "Segoe UI Emoji";
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .badge {
+        background: var(--panel);
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .hud {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 12px;
+      }
+      .card {
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .bar {
+        height: 14px;
+        background: #12182f;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .bar > span {
+        display: block;
+        height: 100%;
+      }
+      .hp {
+        background: linear-gradient(90deg, #2dd4bf, #10b981);
+      }
+      .xp {
+        background: linear-gradient(90deg, #60a5fa, #4f46e5);
+      }
+      .enemyhp {
+        background: linear-gradient(90deg, #f87171, #ef4444);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .stat {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 8px;
+        border-radius: 10px;
+        text-align: center;
+      }
+      .stat h4 {
+        margin: 0;
+        font-size: 11px;
+        color: #9db0ff;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .stat p {
+        margin: 4px 0 0;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .stage {
+        display: grid;
+        grid-template-columns: 1fr 260px;
+        gap: 12px;
+      }
+      canvas {
+        width: 100%;
+        height: 520px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #0a1127;
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+      }
+      .panel {
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 12px;
+      }
+      .panel h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: #a9bbff;
+      }
+      button,
+      .btn {
+        cursor: pointer;
+        border: none;
+        background: #1a234a;
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: 0.15s border, 0.15s transform;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      button:hover {
+        transform: translateY(-1px);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .btn-accent {
+        background: #1c254f;
+        border-color: #3b5ef0;
+      }
+      .btn-danger {
+        background: #3a1f28;
+        border-color: #ff6b81;
+      }
+
+      .grid-controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        place-items: center;
+      }
+      .grid-controls .spacer {
+        visibility: hidden;
+      }
+
+      .file {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 8px;
+      }
+      input[type="file"] {
+        flex: 1;
+      }
+
+      .log {
+        max-height: 180px;
+        overflow: auto;
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 8px;
+      }
+      .log p {
+        margin: 0.25em 0;
+      }
+
+      .bad {
+        color: var(--bad);
+      }
+      .good {
+        color: var(--good);
+      }
+      .warn {
+        color: var(--warn);
+      }
+
+      @media (max-width: 960px) {
+        .hud {
+          grid-template-columns: 1fr;
+        }
+        .stage {
+          grid-template-columns: 1fr;
+        }
+        canvas {
+          height: 420px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 2l2.09 4.23L18.7 7l-3.3 3.22.78 4.54L12 12.77 7.82 14.76l.78-4.54L5.3 7l4.61-.77L12 2z"
+              stroke="#8ea3ff"
+              stroke-width="1.2"
+            />
+          </svg>
+          <h1 style="margin: 0; font-size: 18px">Lite RPG – XP & Level</h1>
+          <span class="badge"
+            >WASD/↑↓←→ for bevegelse • Møt fiende for kamp</span
+          >
+        </div>
+        <div class="row">
+          <button id="newGame" class="btn-accent">Ny runde</button>
+          <button id="saveGame">Lagre</button>
+          <button id="loadGame">Last</button>
+        </div>
+      </header>
+
+      <section class="hud">
+        <div class="card">
+          <div
+            class="row"
+            style="
+              gap: 16px;
+              align-items: flex-end;
+              justify-content: space-between;
+            "
+          >
+            <div style="min-width: 220px">
+              <div class="row" style="gap: 10px">
+                <div>
+                  <div style="font-size: 14px; color: #9db0ff">Spiller</div>
+                  <div
+                    style="font-size: 18px; font-weight: 800"
+                    id="playerName"
+                  >
+                    Helt
+                  </div>
+                </div>
+                <div class="badge" id="modeBadge">Utforsking</div>
+              </div>
+              <div class="bar" style="margin: 6px 0 6px">
+                <span id="hpBar" class="hp" style="width: 100%"></span>
+              </div>
+              <div class="row" style="gap: 8px; font-size: 12px">
+                <span>HP: <b id="hpText">—</b></span>
+                <span>•</span>
+                <span>Lv <b id="levelText">1</b></span>
+                <span>•</span>
+                <span>XP <b id="xpText">0/100</b></span>
+                <span>•</span>
+                <span>Gull <b id="goldText">0</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <h4>Angrep</h4>
+              <p id="atkText">—</p>
+            </div>
+            <div class="stat">
+              <h4>Forsvar</h4>
+              <p id="defText">—</p>
+            </div>
+            <div class="stat">
+              <h4>Hast.</h4>
+              <p id="spdText">—</p>
+            </div>
+            <div class="stat">
+              <h4>XP-bar</h4>
+              <div class="bar">
+                <span id="xpBar" class="xp" style="width: 0%"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="justify-content: space-between">
+            <div>
+              <div style="font-size: 14px; color: #9db0ff">Fiende</div>
+              <div style="font-size: 18px; font-weight: 800" id="enemyName">
+                —
+              </div>
+            </div>
+            <div class="badge" id="battleBadge">Ingen kamp</div>
+          </div>
+          <div class="bar" style="margin: 6px 0 6px">
+            <span id="enemyHpBar" class="enemyhp" style="width: 0%"></span>
+          </div>
+          <div class="row" style="gap: 8px; font-size: 12px">
+            <span>HP: <b id="enemyHpText">—</b></span>
+            <span>•</span>
+            <span>Lv <b id="enemyLvlText">—</b></span>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <h4>Angrep</h4>
+              <p id="enemyAtkText">—</p>
+            </div>
+            <div class="stat">
+              <h4>Forsvar</h4>
+              <p id="enemyDefText">—</p>
+            </div>
+            <div class="stat">
+              <h4>Hast.</h4>
+              <p id="enemySpdText">—</p>
+            </div>
+            <div class="stat">
+              <h4>Status</h4>
+              <p id="enemyStatus">—</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <canvas
+          id="game"
+          width="960"
+          height="540"
+          aria-label="spillflate"
+        ></canvas>
+        <div class="controls">
+          <div class="panel">
+            <h3>Handlinger (kamp)</h3>
+            <div class="row" style="gap: 6px; flex-wrap: wrap">
+              <button id="btnAttack" class="btn-accent" disabled>Angrip</button>
+              <button id="btnDefend" disabled>Forsvar</button>
+              <button id="btnSpecial" disabled>
+                Spesial <span id="cdText" class="badge">klar</span>
+              </button>
+              <button id="btnRun" class="btn-danger" disabled>Røm</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Bildevalg (last opp dine PNG-er)</h3>
+            <div class="file">
+              <label for="heroFile" class="badge">Helt</label
+              ><input id="heroFile" type="file" accept="image/png,image/*" />
+            </div>
+            <div class="file">
+              <label for="enemyFile" class="badge">Fiende</label
+              ><input id="enemyFile" type="file" accept="image/png,image/*" />
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Loot & Oppdrag</h3>
+            <div class="row" style="gap: 6px; flex-wrap: wrap">
+              <button id="btnPotion" disabled>Bruk potion</button>
+              <button id="btnQuest">Ta oppdrag</button>
+            </div>
+            <div id="questBox" style="font-size: 13px; margin-top: 6px"></div>
+          </div>
+          <div class="panel">
+            <h3>Mobil-kontroller</h3>
+            <div class="grid-controls">
+              <span class="spacer"></span>
+              <button id="up">↑</button>
+              <span class="spacer"></span>
+              <button id="left">←</button>
+              <button id="down">↓</button>
+              <button id="right">→</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Kamp-logg</h3>
+            <div id="log" class="log"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // ======= Hjelpefunksjoner =======
+      const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+      const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      // ======= Ressurser (bilder) =======
+      const heroImg = new Image();
+      const enemyImg = new Image();
+      // Standardfallback (enkle sirkler hvis ingen bilder lastes)
+      heroImg.dataset.fallback = "1";
+      enemyImg.dataset.fallback = "1";
+
+      const heroFile = document.getElementById("heroFile");
+      const enemyFile = document.getElementById("enemyFile");
+      heroFile.addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          heroImg.src = URL.createObjectURL(file);
+          heroImg.dataset.fallback = "0";
+        }
+      });
+      enemyFile.addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          enemyImg.src = URL.createObjectURL(file);
+          enemyImg.dataset.fallback = "0";
+        }
+      });
+
+      // ======= Canvas & verden =======
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+
+      const world = {
+        w: canvas.width,
+        h: canvas.height,
+        grid: 48,
+        obstacles: [], // (ikke brukt nå, men klargjort)
+      };
+
+      // ======= Spiller og fiende =======
+      const player = {
+        name: "Helt",
+        x: 120,
+        y: 120,
+        r: 20,
+        speed: 3.2,
+        level: 1,
+        xp: 0,
+        xpToNext: 100,
+        maxHp: 100,
+        hp: 100,
+        atk: 12,
+        def: 4,
+        spd: 10,
+        gold: 0,
+        specialCd: 0, // nedtelling i runder
+      };
+
+      let enemy = null; // aktiv fiende ute i verden
+      player.potions = 1;
+      let currentQuest = null;
+
+      function makeEnemy(levelBase = 1) {
+        const pool = [
+          "Slim",
+          "Varg",
+          "Banditt",
+          "Golem",
+          "Wisp",
+          "Ork",
+          "Necro",
+          "Drageunge",
+        ];
+        const lvl = clamp(rand(levelBase, levelBase + 2), 1, 99);
+        return {
+          name: pool[rand(0, pool.length - 1)],
+          x: rand(160, world.w - 120),
+          y: rand(160, world.h - 120),
+          r: 22,
+          speed: 2.4,
+          level: lvl,
+          maxHp: 50 + lvl * 18,
+          hp: 50 + lvl * 18,
+          atk: 8 + lvl * 3,
+          def: 2 + Math.floor(lvl * 0.8),
+          spd: 6 + Math.floor(lvl * 0.7),
+          alive: true,
+          aggro: false,
+        };
+      }
+
+      // ======= Inndata =======
+      const keys = { up: false, down: false, left: false, right: false };
+      addEventListener("keydown", (e) => {
+        if (["ArrowUp", "KeyW"].includes(e.code)) keys.up = true;
+        if (["ArrowDown", "KeyS"].includes(e.code)) keys.down = true;
+        if (["ArrowLeft", "KeyA"].includes(e.code)) keys.left = true;
+        if (["ArrowRight", "KeyD"].includes(e.code)) keys.right = true;
+      });
+      addEventListener("keyup", (e) => {
+        if (["ArrowUp", "KeyW"].includes(e.code)) keys.up = false;
+        if (["ArrowDown", "KeyS"].includes(e.code)) keys.down = false;
+        if (["ArrowLeft", "KeyA"].includes(e.code)) keys.left = false;
+        if (["ArrowRight", "KeyD"].includes(e.code)) keys.right = false;
+      });
+      // mobil-knapper
+      const press = (k, v) => {
+        keys[k] = v;
+      };
+      document.getElementById("up").onmousedown = () => press("up", true);
+      document.getElementById("up").onmouseup = () => press("up", false);
+      document.getElementById("down").onmousedown = () => press("down", true);
+      document.getElementById("down").onmouseup = () => press("down", false);
+      document.getElementById("left").onmousedown = () => press("left", true);
+      document.getElementById("left").onmouseup = () => press("left", false);
+      document.getElementById("right").onmousedown = () => press("right", true);
+      document.getElementById("right").onmouseup = () => press("right", false);
+      // touch
+      ["up", "down", "left", "right"].forEach((id) => {
+        const el = document.getElementById(id);
+        el.addEventListener("touchstart", () => press(id, true));
+        el.addEventListener("touchend", () => press(id, false));
+      });
+
+      // ======= Kamp-system =======
+      let mode = "explore"; // 'explore' | 'battle'
+      let turn = "player"; // hvis battle
+      let lastTick = 0;
+
+      const logBox = document.getElementById("log");
+      const log = (msg, cls = "") => {
+        const p = document.createElement("p");
+        p.textContent = msg;
+        if (cls) p.className = cls;
+        logBox.prepend(p);
+      };
+
+      function enterBattle() {
+        mode = "battle";
+        turn = player.spd >= enemy.spd ? "player" : "enemy";
+        document.getElementById("modeBadge").textContent = "Kamp!";
+        document.getElementById("battleBadge").textContent = "Pågår";
+        setActionButtons(true);
+        log(`Du møter en Lv ${enemy.level} ${enemy.name}!`, "warn");
+        if (turn === "enemy") enemyTurn();
+      }
+
+      function exitBattle(victory = false) {
+        mode = "explore";
+        setActionButtons(false);
+        document.getElementById("modeBadge").textContent = "Utforsking";
+        document.getElementById("battleBadge").textContent = "Ingen kamp";
+        if (victory) {
+          const xpGain = rand(12, 18) + enemy.level * 18;
+          const goldGain = rand(4, 10) + Math.floor(enemy.level * 1.6);
+          player.xp += xpGain;
+          player.gold += goldGain;
+          if (Math.random() < 0.3) {
+            player.potions++;
+            log("Du fant en potion!", "good");
+          }
+          log(`Seier! +${xpGain} XP, +${goldGain} gull.`, "good");
+          while (player.xp >= player.xpToNext) {
+            player.xp -= player.xpToNext;
+            levelUp();
+          }
+          if (
+            currentQuest &&
+            currentQuest.type === "kill" &&
+            enemy.name === currentQuest.target
+          ) {
+            currentQuest.count--;
+            if (currentQuest.count <= 0) {
+              log(`Oppdrag fullført! +${currentQuest.reward} gull`, "good");
+              player.gold += currentQuest.reward;
+              currentQuest = null;
+              updateQuestUI();
+            } else {
+              updateQuestUI();
+            }
+          }
+        } else {
+          log("Du unnslapp kampen.");
+        }
+        enemy = makeEnemy(Math.max(1, player.level - 1));
+        updateHUD();
+      }
+      // ====== Potions ======
+      document.getElementById("btnPotion").onclick = () => {
+        if (player.potions <= 0) {
+          log("Ingen potions igjen.", "warn");
+          return;
+        }
+        if (player.hp === player.maxHp) {
+          log("Du har allerede fullt liv.");
+          return;
+        }
+        player.hp = clamp(
+          player.hp + Math.floor(player.maxHp * 0.5),
+          0,
+          player.maxHp
+        );
+        player.potions--;
+        log("Du bruker en potion og får tilbake HP.", "good");
+        updateHUD();
+      };
+
+      // ====== Oppdrag ======
+      const questBox = document.getElementById("questBox");
+      document.getElementById("btnQuest").onclick = () => {
+        if (currentQuest) {
+          log("Du har allerede et oppdrag.", "warn");
+          return;
+        }
+        currentQuest = {
+          type: "kill",
+          target: ["Slim", "Banditt", "Varg"][rand(0, 2)],
+          count: rand(2, 4),
+          reward: rand(30, 60),
+        };
+        log(
+          `Nytt oppdrag: Drep ${currentQuest.count} ${currentQuest.target}(er).`,
+          "warn"
+        );
+        updateQuestUI();
+      };
+      function updateQuestUI() {
+        if (!currentQuest) {
+          questBox.textContent = "Ingen aktivt oppdrag.";
+          return;
+        }
+        questBox.textContent = `Oppdrag: Drep ${currentQuest.count}x ${currentQuest.target}. Belønning: ${currentQuest.reward} gull.`;
+      }
+
+      function levelUp() {
+        player.level++;
+        const hpGain = 18 + rand(0, 6);
+        const atkGain = 3 + rand(0, 2);
+        const defGain = 2 + rand(0, 2);
+        const spdGain = 1 + rand(0, 2);
+        player.maxHp += hpGain;
+        player.hp = player.maxHp;
+        player.atk += atkGain;
+        player.def += defGain;
+        player.spd += spdGain;
+        player.xpToNext = Math.floor(100 * Math.pow(1.2, player.level - 1));
+        log(
+          `LEVEL OPP! Du er nå nivå ${player.level}. (+${hpGain} HP, +${atkGain} ATK, +${defGain} DEF, +${spdGain} SPD)`,
+          "good"
+        );
+      }
+
+      function dmgCalc(atk, def) {
+        const base = Math.max(1, Math.floor(atk * 1.2 - def * 0.7));
+        const crit = Math.random() < 0.1 ? 1.7 : 1.0; // 10% crit
+        const variance = lerp(0.9, 1.1, Math.random());
+        return Math.max(1, Math.floor(base * crit * variance));
+      }
+
+      function playerTurn(action) {
+        if (mode !== "battle" || turn !== "player") return;
+        let dmg = 0;
+        switch (action) {
+          case "attack":
+            dmg = dmgCalc(player.atk, enemy.def);
+            enemy.hp = clamp(enemy.hp - dmg, 0, enemy.maxHp);
+            log(`Du angriper ${enemy.name} for ${dmg} skade.`);
+            break;
+          case "defend":
+            log("Du forsvarer deg og tar redusert skade neste runde.");
+            player.tempDef = (player.tempDef || 0) + 6;
+            break;
+          case "special":
+            if (player.specialCd > 0) {
+              log("Spesial er på nedkjøling!", "warn");
+              return;
+            }
+            dmg = Math.floor(dmgCalc(player.atk * 1.6, enemy.def));
+            enemy.hp = clamp(enemy.hp - dmg, 0, enemy.maxHp);
+            log(`Du bruker SPESIAL! ${enemy.name} tar ${dmg} skade!`, "good");
+            player.specialCd = 3; // 3 runder cd
+            break;
+          case "run":
+            if (Math.random() < 0.6) {
+              log("Du rømmer vellykket.", "warn");
+              exitBattle(false);
+              return;
+            } else {
+              log("Rømningsforsøk mislyktes!", "bad");
+            }
+            break;
+        }
+        updateEnemyHUD();
+        if (enemy.hp <= 0) {
+          log(`${enemy.name} er nedkjempet!`, "good");
+          exitBattle(true);
+          return;
+        }
+        turn = "enemy";
+        setActionButtons(false);
+        setTimeout(enemyTurn, 420);
+      }
+
+      function enemyTurn() {
+        if (mode !== "battle") return;
+        if (!enemy.alive) {
+          turn = "player";
+          setActionButtons(true);
+          return;
+        }
+        let action = "attack";
+        if (enemy.hp < enemy.maxHp * 0.35 && Math.random() < 0.2)
+          action = "defend";
+        if (action === "attack") {
+          const dmg = Math.max(
+            1,
+            dmgCalc(enemy.atk, player.def + (player.tempDef || 0))
+          );
+          player.hp = clamp(player.hp - dmg, 0, player.maxHp);
+          log(`${enemy.name} angriper for ${dmg} skade.`, "bad");
+        } else {
+          enemy.def += 3;
+          log(`${enemy.name} går i forsvar.`, "warn");
+          setTimeout(() => {
+            enemy.def -= 3;
+          }, 10);
+        }
+        if (player.tempDef) {
+          player.tempDef = Math.max(0, player.tempDef - 6);
+        }
+        if (player.specialCd > 0) {
+          player.specialCd--;
+        }
+
+        updateHUD();
+        if (player.hp <= 0) {
+          gameOver();
+          return;
+        }
+        turn = "player";
+        setActionButtons(true);
+      }
+
+      function setActionButtons(enabled) {
+        const ids = ["btnAttack", "btnDefend", "btnSpecial", "btnRun"];
+        ids.forEach((id) => {
+          document.getElementById(id).disabled = !enabled;
+        });
+        document.getElementById("cdText").textContent =
+          player.specialCd > 0 ? `${player.specialCd} r.` : "klar";
+      }
+
+      // ======= UI-handlers =======
+      document.getElementById("btnAttack").onclick = () => playerTurn("attack");
+      document.getElementById("btnDefend").onclick = () => playerTurn("defend");
+      document.getElementById("btnSpecial").onclick = () =>
+        playerTurn("special");
+      document.getElementById("btnRun").onclick = () => playerTurn("run");
+
+      document.getElementById("newGame").onclick = () => {
+        newGame();
+      };
+      document.getElementById("saveGame").onclick = () => {
+        localStorage.setItem("miniRPGsave", JSON.stringify({ player, enemy }));
+        log("Spillet er lagret.");
+      };
+      document.getElementById("loadGame").onclick = () => {
+        const s = localStorage.getItem("miniRPGsave");
+        if (!s) {
+          log("Ingen lagring funnet.", "warn");
+          return;
+        }
+        try {
+          const data = JSON.parse(s);
+          Object.assign(player, data.player);
+          enemy = data.enemy;
+          updateHUD();
+          log("Lagring lastet.");
+        } catch (e) {
+          log("Kunne ikke laste lagring.", "bad");
+        }
+      };
+
+      function newGame() {
+        Object.assign(player, {
+          x: 120,
+          y: 120,
+          level: 1,
+          xp: 0,
+          xpToNext: 100,
+          maxHp: 100,
+          hp: 100,
+          atk: 12,
+          def: 4,
+          spd: 10,
+          gold: 0,
+          specialCd: 0,
+        });
+        enemy = makeEnemy(1);
+        mode = "explore";
+        turn = "player";
+        logBox.innerHTML = "";
+        log("Ny runde startet. Utforsk og finn en fiende!");
+        updateHUD();
+      }
+
+      // ======= HUD =======
+      function updateHUD() {
+        document.getElementById("playerName").textContent = player.name;
+        document.getElementById("levelText").textContent = player.level;
+        document.getElementById("goldText").textContent = player.gold;
+        document.getElementById("atkText").textContent = player.atk;
+        document.getElementById("defText").textContent =
+          player.def + (player.tempDef ? ` (+${player.tempDef})` : "");
+        document.getElementById("spdText").textContent = player.spd;
+        document.getElementById(
+          "hpText"
+        ).textContent = `${player.hp}/${player.maxHp}`;
+        document.getElementById(
+          "xpText"
+        ).textContent = `${player.xp}/${player.xpToNext}`;
+        const hpPct = (player.hp / player.maxHp) * 100;
+        document.getElementById("hpBar").style.width = `${hpPct}%`;
+        const xpPct = (player.xp / player.xpToNext) * 100;
+        document.getElementById("xpBar").style.width = `${xpPct}%`;
+        updateEnemyHUD();
+        setActionButtons(mode === "battle" && turn === "player");
+        document.getElementById("btnPotion").disabled = player.potions <= 0;
+        updateQuestUI();
+      }
+
+      function updateEnemyHUD() {
+        if (!enemy) {
+          document.getElementById("enemyName").textContent = "—";
+          document.getElementById("enemyHpText").textContent = "—";
+          document.getElementById("enemyLvlText").textContent = "—";
+          document.getElementById("enemyAtkText").textContent = "—";
+          document.getElementById("enemyDefText").textContent = "—";
+          document.getElementById("enemySpdText").textContent = "—";
+          document.getElementById("enemyStatus").textContent = "—";
+          document.getElementById("enemyHpBar").style.width = `0%`;
+          return;
+        }
+        document.getElementById("enemyName").textContent = enemy.name;
+        document.getElementById(
+          "enemyHpText"
+        ).textContent = `${enemy.hp}/${enemy.maxHp}`;
+        document.getElementById("enemyLvlText").textContent = enemy.level;
+        document.getElementById("enemyAtkText").textContent = enemy.atk;
+        document.getElementById("enemyDefText").textContent = enemy.def;
+        document.getElementById("enemySpdText").textContent = enemy.spd;
+        document.getElementById("enemyStatus").textContent =
+          mode === "battle" ? "I kamp" : "Vandrer";
+        document.getElementById("enemyHpBar").style.width = `${
+          (enemy.hp / enemy.maxHp) * 100
+        }%`;
+      }
+
+      // ======= Tegning =======
+      function drawBackground() {
+        // enkel "tile"-bakgrunn
+        ctx.fillStyle = "#081023";
+        ctx.fillRect(0, 0, world.w, world.h);
+        ctx.strokeStyle = "rgba(255,255,255,.03)";
+        for (let x = 0; x < world.w; x += world.grid) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, world.h);
+          ctx.stroke();
+        }
+        for (let y = 0; y < world.h; y += world.grid) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(world.w, y);
+          ctx.stroke();
+        }
+      }
+
+      function drawEntity(img, x, y, r, fallbackColor) {
+        if (
+          img.complete &&
+          img.naturalWidth > 0 &&
+          img.dataset.fallback === "0"
+        ) {
+          const size = r * 2;
+          ctx.drawImage(img, x - r, y - r, size, size);
+        } else {
+          // fallback: sirkel
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = fallbackColor;
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "rgba(255,255,255,.25)";
+          ctx.stroke();
+        }
+      }
+
+      function draw() {
+        drawBackground();
+        // tegn fiende
+        if (enemy) {
+          drawEntity(enemyImg, enemy.x, enemy.y, enemy.r, "#b34141");
+        }
+        // tegn spiller
+        drawEntity(heroImg, player.x, player.y, player.r, "#2cb67d");
+
+        // helse-stolper over hodet i utforsking
+        if (mode === "explore") {
+          // spiller hp
+          const pw = 60,
+            ph = 6,
+            px = player.x - pw / 2,
+            py = player.y - player.r - 14;
+          ctx.fillStyle = "rgba(255,255,255,.15)";
+          ctx.fillRect(px, py, pw, ph);
+          ctx.fillStyle = "#22c55e";
+          ctx.fillRect(px, py, pw * (player.hp / player.maxHp), ph);
+          // fiende hp
+          const ew = 60,
+            eh = 6,
+            ex = enemy.x - ew / 2,
+            ey = enemy.y - enemy.r - 14;
+          ctx.fillStyle = "rgba(255,255,255,.15)";
+          ctx.fillRect(ex, ey, ew, eh);
+          ctx.fillStyle = "#ef4444";
+          ctx.fillRect(ex, ey, ew * (enemy.hp / enemy.maxHp), eh);
+        }
+      }
+
+      // ======= Logikk per frame =======
+      function update(dt) {
+        if (mode === "explore") {
+          const s = player.speed;
+          if (keys.up) player.y -= s;
+          if (keys.down) player.y += s;
+          if (keys.left) player.x -= s;
+          if (keys.right) player.x += s;
+          // grenser
+          player.x = clamp(player.x, player.r + 4, world.w - player.r - 4);
+          player.y = clamp(player.y, player.r + 4, world.h - player.r - 4);
+
+          // fiende tilfeldig bevegelse mot spiller litt
+          const dirX = Math.sign(player.x - enemy.x),
+            dirY = Math.sign(player.y - enemy.y);
+          if (Math.random() < 0.8) {
+            enemy.x += dirX * enemy.speed * 0.6;
+            enemy.y += dirY * enemy.speed * 0.6;
+          }
+          enemy.x = clamp(enemy.x, enemy.r + 4, world.w - enemy.r - 4);
+          enemy.y = clamp(enemy.y, enemy.r + 4, world.h - enemy.r - 4);
+
+          // kollisjon -> kamp
+          const dx = enemy.x - player.x,
+            dy = enemy.y - player.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < player.r + enemy.r) {
+            enterBattle();
+          }
+        }
+      }
+
+      function gameLoop(ts) {
+        const dt = (ts - lastTick) / 1000;
+        lastTick = ts;
+        update(dt);
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+
+      // ======= Game Over =======
+      function gameOver() {
+        log("Du ble slått ut! Game Over.", "bad");
+        mode = "explore";
+        // myk reset: halver XP og sett HP til 1, behold level
+        player.xp = Math.floor(player.xp * 0.5);
+        player.hp = Math.max(1, Math.floor(player.maxHp * 0.4));
+        enemy = makeEnemy(Math.max(1, player.level - 1));
+        updateHUD();
+      }
+
+      // ======= Init =======
+      function init() {
+        enemy = makeEnemy(1);
+        updateHUD();
+        requestAnimationFrame(gameLoop);
+        log("Spillet er klart! Finn fiender, samle loot, ta oppdrag.");
+      }
+      init();
+    </script>
+  </body>
+</html>
