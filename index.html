@@ -394,6 +394,9 @@
             <h3>Loot & Oppdrag</h3>
             <div class="row" style="gap: 6px; flex-wrap: wrap">
               <button id="btnPotion" disabled>Bruk potion</button>
+              <span id="potionCount" style="font-size: 13px; margin-left: 8px"
+                >Potions: 0/0</span
+              >
               <button id="btnQuest">Ta oppdrag</button>
             </div>
             <div id="questBox" style="font-size: 13px; margin-top: 6px"></div>
@@ -576,9 +579,15 @@
           const goldGain = rand(4, 10) + Math.floor(enemy.level * 1.6);
           player.xp += xpGain;
           player.gold += goldGain;
+          // 30% sjanse å finne en potion, men aldri over maksgrense
           if (Math.random() < 0.3) {
-            player.potions++;
-            log("Du fant en potion!", "good");
+            if (!player.maxPotions) player.maxPotions = 5;
+            if (player.potions < player.maxPotions) {
+              player.potions++;
+              log("Du fant en potion!", "good");
+            } else {
+              log("Du fant en potion, men sekken er full.", "warn");
+            }
           }
           log(`Seier! +${xpGain} XP, +${goldGain} gull.`, "good");
           while (player.xp >= player.xpToNext) {
@@ -645,6 +654,13 @@
         );
         updateQuestUI();
       };
+      function updateQuestUI() {
+        if (!currentQuest) {
+          questBox.textContent = "Ingen aktivt oppdrag.";
+          return;
+        }
+        questBox.textContent = `Oppdrag: Drep ${currentQuest.count}x ${currentQuest.target}. Belønning: ${currentQuest.reward} gull.`;
+      }
       function updateQuestUI() {
         if (!currentQuest) {
           questBox.textContent = "Ingen aktivt oppdrag.";
@@ -847,6 +863,9 @@
         updateEnemyHUD();
         setActionButtons(mode === "battle" && turn === "player");
         document.getElementById("btnPotion").disabled = player.potions <= 0;
+        document.getElementById(
+          "potionCount"
+        ).textContent = `Potions: ${player.potions}/${player.maxPotions}`;
         updateQuestUI();
       }
 
@@ -1000,9 +1019,10 @@
         updateHUD();
       }
 
-      // ======= Init =======
+      // ====== init etc ======
       function init() {
         enemy = makeEnemy(1);
+        if (!player.maxPotions) player.maxPotions = 5;
         updateHUD();
         requestAnimationFrame(gameLoop);
         log("Spillet er klart! Finn fiender, samle loot, ta oppdrag.");
